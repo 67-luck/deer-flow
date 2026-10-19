@@ -1431,12 +1431,12 @@ def _is_awk_field_arithmetic(command: str, match: re.Match[str], remainder: str)
     right-hand side is one scalar field/name or number.
     """
     scalar = remainder.removesuffix("}")
-    if not re.fullmatch(r"\\$?[A-Za-z_][A-Za-z0-9_]*|\\$?\\d+(?:\\.\\d+)?", scalar):
+    if not re.fullmatch(r"\$?[A-Za-z_][A-Za-z0-9_]*|\$?\d+(?:\.\d+)?", scalar):
         return False
     quote_start = command.rfind("'", 0, match.start())
     if quote_start < 0 or command.count("'", 0, match.start()) % 2 == 0:
         return False
-    return re.search(r"(?:^|[;&|]\\s*|\\s)awk(?:\\s|$)", command[:quote_start]) is not None
+    return re.search(r"(?:^|[;&|]\s*|\s)awk(?:\s|$)", command[:quote_start]) is not None
 
 
 def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState | None) -> None:
