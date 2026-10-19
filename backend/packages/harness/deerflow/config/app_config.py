@@ -858,7 +858,7 @@ def reset_app_config() -> None:
     `get_app_config()` to reload from file. Useful for testing
     or when switching between different configurations.
     """
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom
+    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom, _app_config_source
     global _app_config_extensions_source
     _app_config = None
     _app_config_path = None
