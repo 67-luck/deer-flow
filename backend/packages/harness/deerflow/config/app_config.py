@@ -731,6 +731,9 @@ _app_config_path: Path | None = None
 _app_config_mtime: float | None = None
 _app_config_signature: _ConfigSignature | None = None
 _app_config_is_custom = False
+# Explicit reload paths stay pinned so get_app_config() cannot silently fall back
+# to an ambient config.yaml in another repository root.
+_app_config_source: Path | None = None
 # The ``get_extensions_config()`` instance the cached AppConfig's ``extensions``
 # snapshot was built from. That singleton is replaced only when the shared
 # ``extensions_config.json`` changes (or a writer reloads it), so identity is
@@ -768,7 +771,7 @@ def _load_and_cache_app_config(config_path: str | None = None, *, extensions_sou
     older than the YAML it is merged with, never newer; a change in between
     is one extra reload on the next call.
     """
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom
+    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom, _app_config_source
     global _app_config_extensions_source
 
     resolved_path = AppConfig.resolve_config_path(config_path)
@@ -804,7 +807,7 @@ def get_app_config() -> AppConfig:
     if _app_config is not None and _app_config_is_custom:
         return _app_config
 
-    resolved_path = AppConfig.resolve_config_path()
+    resolved_path = _app_config_source or AppConfig.resolve_config_path()
     current_mtime = _get_config_mtime(resolved_path)
     current_signature = _get_config_signature(resolved_path)
     current_extensions_source = get_extensions_config()
@@ -840,9 +843,12 @@ def reload_app_config(config_path: str | None = None) -> AppConfig:
     Returns:
         The newly loaded AppConfig instance.
     """
+    global _app_config_source
     from deerflow.config.managed_models import merge_managed_models
 
-    return merge_managed_models(_load_and_cache_app_config(config_path))
+    config = _load_and_cache_app_config(config_path)
+    _app_config_source = Path(config_path).expanduser().resolve() if config_path is not None else None
+    return merge_managed_models(config)
 
 
 def reset_app_config() -> None:
@@ -859,6 +865,7 @@ def reset_app_config() -> None:
     _app_config_mtime = None
     _app_config_signature = None
     _app_config_is_custom = False
+    _app_config_source = None
     _app_config_extensions_source = None
 
 
@@ -870,9 +877,10 @@ def set_app_config(config: AppConfig) -> None:
     Args:
         config: The AppConfig instance to use.
     """
-    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom
+    global _app_config, _app_config_path, _app_config_mtime, _app_config_signature, _app_config_is_custom, _app_config_source
     global _app_config_extensions_source
     _app_config = config
+    _app_config_source = None
     _app_config_path = None
     _app_config_mtime = None
     _app_config_signature = None
