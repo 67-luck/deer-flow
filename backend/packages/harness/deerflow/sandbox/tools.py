@@ -1430,7 +1430,8 @@ def _is_awk_field_arithmetic(command: str, match: re.Match[str], remainder: str)
     exemption narrow: it only applies inside an awk program and when the
     right-hand side is one scalar field/name or number.
     """
-    if not re.fullmatch(r"\\$?[A-Za-z_][A-Za-z0-9_]*|\\$?\\d+(?:\\.\\d+)?", remainder):
+    scalar = remainder.removesuffix("}")
+    if not re.fullmatch(r"\\$?[A-Za-z_][A-Za-z0-9_]*|\\$?\\d+(?:\\.\\d+)?", scalar):
         return False
     quote_start = command.rfind("'", 0, match.start())
     if quote_start < 0 or command.count("'", 0, match.start()) % 2 == 0:
