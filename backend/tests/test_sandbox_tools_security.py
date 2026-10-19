@@ -1603,6 +1603,23 @@ def test_validate_local_bash_command_paths_blocks_traversal_in_custom_mount() ->
             validate_local_bash_command_paths("cat /mnt/code-read/../../etc/passwd", _THREAD_DATA)
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "awk '{print $NF/2}' /mnt/user-data/workspace/data.txt",
+        "awk '{print $sum/$n}' /mnt/user-data/workspace/data.txt",
+        "bash -c \\\"awk '{print $NF/2}' /mnt/user-data/workspace/data.txt\\\"",
+    ],
+)
+def test_validate_local_bash_command_paths_allows_named_awk_field_arithmetic(command: str) -> None:
+    validate_local_bash_command_paths(command, _THREAD_DATA)
+
+
+def test_validate_local_bash_command_paths_still_rejects_shell_variable_path() -> None:
+    with pytest.raises(PermissionError, match="Unsafe absolute paths"):
+        validate_local_bash_command_paths("cat $HOME/.ssh/id_rsa", _THREAD_DATA)
+
+
 def test_validate_local_bash_command_paths_still_blocks_non_mount_paths() -> None:
     """Paths not matching any custom mount should still be blocked."""
     with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
