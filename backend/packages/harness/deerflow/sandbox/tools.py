@@ -1422,6 +1422,22 @@ def _is_non_path_literal_fragment(fragment: str) -> bool:
     return False
 
 
+def _is_awk_field_arithmetic(command: str, match: re.Match[str], remainder: str) -> bool:
+    """Return whether a shell-variable match is an awk field expression.
+
+    Awk programs are commonly single-quoted, so $NF/2 and $sum/$n must not
+    be mistaken for shell variables that expand to host paths. Keep the
+    exemption narrow: it only applies inside an awk program and when the
+    right-hand side is one scalar field/name or number.
+    """
+    if not re.fullmatch(r"\\$?[A-Za-z_][A-Za-z0-9_]*|\\$?\\d+(?:\\.\\d+)?", remainder):
+        return False
+    quote_start = command.rfind("'", 0, match.start())
+    if quote_start < 0 or command.count("'", 0, match.start()) % 2 == 0:
+        return False
+    return re.search(r"(?:^|[;&|]\\s*|\\s)awk(?:\\s|$)", command[:quote_start]) is not None
+
+
 def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState | None) -> None:
     """Validate absolute paths in local-sandbox bash commands.
 
@@ -1490,6 +1506,8 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
         # (``awk '{print $1/$2}'``), not paths: standard top-level host
         # directories do not start with a digit.
         if name.isdigit() and remainder.removeprefix("$")[:1].isdigit():
+            continue
+        if _is_awk_field_arithmetic(command, match, remainder):
             continue
         unsafe_paths.append(match.group() + remainder)
 
