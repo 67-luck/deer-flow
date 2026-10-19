@@ -998,7 +998,7 @@ def test_validate_local_bash_command_paths_rejects_quoted_reserved_or_trailing_d
         "cat /etc/{passwd,shadow}",
         "cat /etc/passwd{,.bak}",
         "cat /{etc,var}/passwd",
-        'bash -c "cat /etc/{passwd,shadow}"',
+        'bash -c "awk \'{print $NF/2}\' /mnt/user-data/workspace/data.txt"',
         # ``${VAR}`` shell variable expansion is the same bypass class: bash
         # substitutes a real host path at runtime even though `USER` is
         # identifier-shaped, so it must stay blocked too.
